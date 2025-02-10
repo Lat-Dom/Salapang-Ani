@@ -10,6 +10,10 @@ import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.media.MediaPlayer;
+import android.media.SoundPool;
+import android.media.AudioAttributes;
+
 
 import androidx.annotation.NonNull;
 
@@ -25,17 +29,22 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     private boolean running = true;
     private Handler handler = new Handler();
     private int score = 0;
-    private int lives = 3; // Player now has 3 lives
+    private int lives = 3;
     private int squaresPerWave = 3;
     private int waveSpeed = 5;
     private long gameStartTime;
     private long gameDuration = 2 * 60 * 1000;
+    private Bitmap background;
+
 
     private int[] imageResources = {
             R.drawable.banana,
-            R.drawable.jackfruit,
-            R.drawable.radish,
-            R.drawable.pineapple
+            R.drawable.apple,
+            R.drawable.cherry,
+            R.drawable.mango,
+            R.drawable.plum,
+            R.drawable.strawberry,
+            R.drawable.raspberry
     };
 
     private int penaltyImageResource = R.drawable.worms;
@@ -44,7 +53,10 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         super(context);
         holder = getHolder();
         holder.addCallback(this);
+
+        background = BitmapFactory.decodeResource(getResources(), R.drawable.background);
     }
+
 
     private void startWaves() {
         handler.postDelayed(new Runnable() {
@@ -78,7 +90,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             x = Math.max(x, 0);
 
             PointF pos = new PointF(x, 0);
-            int size = 70 + rnd.nextInt(151);
+            int size = 250;
 
             boolean isPenalty = rnd.nextInt(8) == 0;
             Bitmap image;
@@ -110,7 +122,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     private void render() {
         Canvas c = holder.lockCanvas();
         if (c != null) {
-            c.drawColor(android.graphics.Color.BLACK);
+            c.drawBitmap(background, 0, 0, null);
 
             for (rndSqr square : squares) {
                 square.draw(c);
@@ -161,9 +173,14 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     public void surfaceCreated(@NonNull SurfaceHolder holder) {
         running = true;
         gameStartTime = System.currentTimeMillis();
+
+        // Ensures background fits the screen
+        background = Bitmap.createScaledBitmap(background, getWidth(), getHeight(), false);
+
         startWaves();
         render();
     }
+
 
     @Override
     public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
