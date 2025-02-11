@@ -97,7 +97,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     /**
      * Spawns a wave of objects.
      * For each of the numSquares:
-     * - With a fixed probability, a penalty (worm) is spawned.
+     * - With a fixed probability, a penalties are spawned.
      * - Otherwise, a non-penalty is spawned:
      *    • 10% chance for a flower (worth +5)
      *    • Otherwise a fruit (worth +1)
@@ -108,7 +108,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             x = Math.max(x, 0);
             PointF pos = new PointF(x, 0);
             int size = 150;
-            boolean isPenalty = (rnd.nextInt(8) == 0);  // Same probability for worm as before.
+            boolean isPenalty = (rnd.nextInt(8) == 0);  // Same probability for worm as previous code.
             Bitmap image;
             if (isPenalty) {
                 image = BitmapFactory.decodeResource(getResources(), penaltyImageResource);
@@ -203,7 +203,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     public void surfaceCreated(@NonNull SurfaceHolder holder) {
         running = true;
         gameStartTime = System.currentTimeMillis();
-        // Ensure the background fits the screen.
+        // Ensure the background fits the screen size.
         background = Bitmap.createScaledBitmap(background, getWidth(), getHeight(), false);
         startWaves();
         render();
@@ -211,7 +211,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
-        // No additional handling required.
+        // No additional handling required lol XD.
     }
 
     @Override
@@ -223,7 +223,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     /**
      * Displays a game-over overlay by inflating the game_over.xml layout. This overlay
      * shows the centered final score and two buttons: "Play Again" (which loops back to
-     * the main activity) and "Main Menu" (placeholder for future main menu functionality).
+     * the main activity) and "Main Menu" (placeholder for future main menu functionality). - Add it when completed
      */
     private void showGameOverScreen() {
         post(new Runnable() {
@@ -252,7 +252,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                     // Set up the "Main Menu" button.
                     Button mainMenuButton = gameOverView.findViewById(R.id.mainMenuButton);
                     mainMenuButton.setOnClickListener(v -> {
-                        // Placeholder for future main menu functionality.
+                        // Placeholder for future main menu functionality. - Add the main menu activity here thx
                         //activity.openMainMenu();
                     });
 
