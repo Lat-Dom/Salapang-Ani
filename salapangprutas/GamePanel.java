@@ -90,7 +90,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             x = Math.max(x, 0);
 
             PointF pos = new PointF(x, 0);
-            int size = 250;
+            int size = 150;
 
             boolean isPenalty = rnd.nextInt(8) == 0;
             Bitmap image;
@@ -113,11 +113,17 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             square.update(getWidth(), getHeight());
 
             if (square.pos.y > getHeight()) {
+                // If the falling object is a point-giving square (i.e. not a penalty),
+                // then the player loses a life.
+                if (!square.isPenalty()) {
+                    lives--;
+                }
                 iterator.remove();
             }
         }
-        Collisions.checkCollisions(squares, getWidth());
+        Collisions.checkCollisions(squares, getWidth(), getHeight());
     }
+
 
     private void render() {
         Canvas c = holder.lockCanvas();
@@ -193,27 +199,70 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         handler.removeCallbacksAndMessages(null); // Stop all pending game updates
     }
 
-
     private void showGameOverScreen() {
         post(new Runnable() {
             @Override
             public void run() {
-                Canvas c = holder.lockCanvas();
-                if (c != null) {
-                    c.drawColor(android.graphics.Color.BLACK);
+                // Ensure that the context is an instance of MainActivity
+                if (getContext() instanceof MainActivity) {
+                    MainActivity activity = (MainActivity) getContext();
+                    // Obtain the game container from MainActivity (it should have the id 'gameContainer')
+                    FrameLayout gameContainer = activity.findViewById(R.id.gameContainer);
+                    // Remove the game view (this GamePanel) from the container
+                    gameContainer.removeAllViews();
 
-                    Paint paint = new Paint();
-                    paint.setColor(android.graphics.Color.RED);
-                    paint.setTextSize(80);
-                    paint.setTextAlign(Paint.Align.CENTER);
-                    c.drawText("GAME OVER!", getWidth() / 2, getHeight() / 2, paint);
+                    // Create an overlay layout for the game over screen
+                    LinearLayout gameOverLayout = new LinearLayout(activity);
+                    gameOverLayout.setOrientation(LinearLayout.VERTICAL);
+                    gameOverLayout.setGravity(Gravity.CENTER);
+                    FrameLayout.LayoutParams overlayParams = new FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.MATCH_PARENT);
+                    gameOverLayout.setLayoutParams(overlayParams);
 
-                    Paint scorePaint = new Paint();
-                    scorePaint.setColor(android.graphics.Color.WHITE);
-                    scorePaint.setTextSize(50);
-                    c.drawText("Final Score: " + score, getWidth() / 2, getHeight() / 2 + 100, scorePaint);
+                    // Create the "GAME OVER!" TextView
+                    TextView gameOverText = new TextView(activity);
+                    gameOverText.setText("GAME OVER!");
+                    gameOverText.setTextColor(Color.RED);
+                    gameOverText.setTextSize(80);
+                    gameOverText.setGravity(Gravity.CENTER);
+                    LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT);
+                    textParams.setMargins(0, 0, 0, 50); // margin bottom for spacing
+                    gameOverText.setLayoutParams(textParams);
 
-                    holder.unlockCanvasAndPost(c);
+                    // Create the final score TextView (score is a field in GamePanel)
+                    TextView scoreText = new TextView(activity);
+                    scoreText.setText("Final Score: " + score);
+                    scoreText.setTextColor(Color.WHITE);
+                    scoreText.setTextSize(50);
+                    scoreText.setGravity(Gravity.CENTER);
+                    scoreText.setLayoutParams(textParams);
+
+                    // Create the "Play Again" button
+                    Button playAgainButton = new Button(activity);
+                    playAgainButton.setText("Play Again");
+                    LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT);
+                    playAgainButton.setLayoutParams(buttonParams);
+                    playAgainButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            // Call MainActivity's startGame() method to restart the game.
+                            // (Make sure startGame() is public in MainActivity.)
+                            activity.startGame();
+                        }
+                    });
+
+                    // Add the views to the overlay layout
+                    gameOverLayout.addView(gameOverText);
+                    gameOverLayout.addView(scoreText);
+                    gameOverLayout.addView(playAgainButton);
+
+                    // Add the overlay layout to the game container
+                    gameContainer.addView(gameOverLayout);
                 }
             }
         });
