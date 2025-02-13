@@ -39,7 +39,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     private int waveSpeed = 5;
     private int waveCount = 0;
     // Initial worm probability: 12.5%
-    private double wormProbability = 0.125;
+    private double wormProbability = 0.15;
 
     private long gameStartTime;
     private long gameDuration = 2 * 60 * 1000; // 2 minutes
@@ -71,7 +71,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         background = BitmapFactory.decodeResource(getResources(), R.drawable.background);
     }
 
-    /**
+    /*
      * Spawns waves of objects. When there are no non-penalty (point-giving) objects
      * on screen, a new wave is spawned.
      */
@@ -111,7 +111,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         }, 50);
     }
 
-    /**
+    /*
      * Spawns a wave of objects.
      * For each of the numSquares:
      * - With probability based on wormProbability, a penalty (worm) is spawned.
@@ -252,7 +252,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         handler.removeCallbacksAndMessages(null);
     }
 
-    /**
+    /*
      * Displays a game-over overlay by inflating the game_over.xml layout. This overlay
      * shows the centered final score and two buttons: "Play Again" and "Main Menu".
      */
