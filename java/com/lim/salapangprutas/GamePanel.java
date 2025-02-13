@@ -37,6 +37,10 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     // Wave parameters
     private int squaresPerWave = 3;
     private int waveSpeed = 5;
+    private int waveCount = 0;
+    // Initial worm probability: 12.5%
+    private double wormProbability = 0.125;
+
     private long gameStartTime;
     private long gameDuration = 2 * 60 * 1000; // 2 minutes
     private Bitmap background;
@@ -89,6 +93,15 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                 if (squares.stream().noneMatch(rndSqr::isPointSquare)) {
                     spawnWave(squaresPerWave, waveSpeed);
                     waveSpeed += 2; // Increase falling speed for the next wave.
+                    waveCount++;
+
+                    // Every 3 waves, increase the number of objects per wave by 2 (capped at 8).
+                    if (waveCount % 3 == 0) {
+                        squaresPerWave = Math.min(squaresPerWave + 2, 8);
+                    }
+
+                    // Every wave, increase worm spawn probability by 0.2% (0.002), capped at 50%.
+                    wormProbability = Math.min(wormProbability + 0.002, 0.5);
                 }
 
                 updateSquares();
@@ -101,7 +114,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     /**
      * Spawns a wave of objects.
      * For each of the numSquares:
-     * - With a fixed probability, a penalty (worm) is spawned.
+     * - With probability based on wormProbability, a penalty (worm) is spawned.
      * - Otherwise, a non-penalty is spawned:
      *    • 10% chance for a flower (worth +5)
      *    • Otherwise a fruit (worth +1)
@@ -112,26 +125,26 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             x = Math.max(x, 0);
             PointF pos = new PointF(x, 0);
             int size = 150;
-            boolean isPenalty = (rnd.nextInt(8) == 0);  // Same probability for worm as before.
+            // Use wormProbability for penalty decision.
+            boolean isPenalty = (rnd.nextDouble() < wormProbability);
             Bitmap image;
             if (isPenalty) {
                 image = BitmapFactory.decodeResource(getResources(), penaltyImageResource);
-                squares.add(new rndSqr(pos, size, image, 0, speed, true));
+                // Make worms fall faster by multiplying speed by 1.5.
+                squares.add(new rndSqr(pos, size, image, 0, (int)(speed * 1.5), true));
             } else {
                 // For non-penalty objects, choose between fruit and flower.
-                if (rnd.nextDouble() < 0.2) { // 20% chance to spawn a flower
-                    int flowerIndex = rnd.nextInt(flowerImageResource.length); // Randomizes from flower 1 - 3
+                if (rnd.nextDouble() < 0.1) { // 10% chance to spawn a flower
+                    int flowerIndex = rnd.nextInt(flowerImageResource.length);
                     image = BitmapFactory.decodeResource(getResources(), flowerImageResource[flowerIndex]);
-
                     rndSqr obj = new rndSqr(pos, size, image, speed);
-                    obj.setPoints(5); // Flower awards +5 points
+                    obj.setPoints(5); // Flower awards +5 points.
                     squares.add(obj);
                 } else { // Otherwise, spawn a fruit.
                     int imageResId = imageResources[rnd.nextInt(imageResources.length)];
                     image = BitmapFactory.decodeResource(getResources(), imageResId);
-
                     rndSqr obj = new rndSqr(pos, size, image, speed);
-                    obj.setPoints(1); // Fruit awards +1 point
+                    obj.setPoints(1); // Fruit awards +1 point.
                     squares.add(obj);
                 }
             }
@@ -210,26 +223,16 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         running = true;
         gameStartTime = System.currentTimeMillis();
 
-        // Load the original background image
+        // Scale and crop background to fill the screen without black borders.
         Bitmap originalBackground = BitmapFactory.decodeResource(getResources(), R.drawable.background);
-
-        // Get screen dimensions
         int screenWidth = getWidth();
         int screenHeight = getHeight();
-
-        // Calculate scale factors
         float scaleX = (float) screenWidth / originalBackground.getWidth();
         float scaleY = (float) screenHeight / originalBackground.getHeight();
-        float scale = Math.max(scaleX, scaleY); // Choose the larger scale factor to fill the screen
-
-        // Calculate new width and height while maintaining aspect ratio
+        float scale = Math.max(scaleX, scaleY);
         int newWidth = Math.round(originalBackground.getWidth() * scale);
         int newHeight = Math.round(originalBackground.getHeight() * scale);
-
-        // Scale the image
         Bitmap scaledBackground = Bitmap.createScaledBitmap(originalBackground, newWidth, newHeight, true);
-
-        // Center the image by cropping it
         int xOffset = (newWidth - screenWidth) / 2;
         int yOffset = (newHeight - screenHeight) / 2;
         background = Bitmap.createBitmap(scaledBackground, xOffset, yOffset, screenWidth, screenHeight);
@@ -246,13 +249,12 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     @Override
     public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
         running = false;
-        handler.removeCallbacksAndMessages(null); // Stop all pending game updates.
+        handler.removeCallbacksAndMessages(null);
     }
 
     /**
      * Displays a game-over overlay by inflating the game_over.xml layout. This overlay
-     * shows the centered final score and two buttons: "Play Again" (which loops back to
-     * the main activity) and "Main Menu" (placeholder for future main menu functionality).
+     * shows the centered final score and two buttons: "Play Again" and "Main Menu".
      */
     private void showGameOverScreen() {
         post(new Runnable() {
@@ -261,31 +263,20 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                 if (getContext() instanceof MainActivity) {
                     MainActivity activity = (MainActivity) getContext();
                     FrameLayout gameContainer = activity.findViewById(R.id.gameContainer);
-                    // Remove the current game view.
                     gameContainer.removeAllViews();
 
                     LayoutInflater inflater = LayoutInflater.from(getContext());
                     View gameOverView = inflater.inflate(R.layout.game_over, null);
 
-                    // Update the final score text.
                     TextView scoreText = gameOverView.findViewById(R.id.finalScoreTextView);
                     scoreText.setText("Final Score: " + score);
 
-                    // Set up the "Play Again" button click listener
                     ImageButton playAgainButton = gameOverView.findViewById(R.id.playAgainButton);
-                    playAgainButton.setOnClickListener(v -> {
-                        // Restart the game immediately
-                        activity.startGame();
-                    });
+                    playAgainButton.setOnClickListener(v -> activity.startGame());
 
-                    // Set up the "Main Menu" button click listener
                     ImageButton mainMenuButton = gameOverView.findViewById(R.id.mainMenuButton);
-                    mainMenuButton.setOnClickListener(v -> {
-                        // Placeholder for future main menu functionality
-                        //activity.openMainMenu();
-                    });
+                    //mainMenuButton.setOnClickListener(v -> activity.openMainMenu());
 
-                    // Add the game-over view to the game container.
                     gameContainer.addView(gameOverView);
                 }
             }
