@@ -38,8 +38,8 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     private int squaresPerWave = 3;
     private int waveSpeed = 20;  // Constant fast speed throughout the game.
     private int waveCount = 0;
-    // Initial worm probability: 15%
-    private double wormProbability = 0.15;
+    // Initial pest probability: 15%
+    private double pestProbability = 0.15;
 
     private long gameStartTime;
     private long gameDuration = 2 * 60 * 1000; // 2 minutes
@@ -56,7 +56,13 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             R.drawable.orange
     };
 
-    private int penaltyImageResource = R.drawable.worms;
+    // Replace the single penalty image with an array for pests.
+    private int[] pestImageResources = {
+            R.drawable.pest1, // Ensure these resources exist or rename accordingly.
+            R.drawable.pest2,
+            R.drawable.pest3
+    };
+
     // Array of flower images (the +5 object)
     private int[] flowerImageResource = {
             R.drawable.flower1,
@@ -69,6 +75,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         holder = getHolder();
         holder.addCallback(this);
         background = BitmapFactory.decodeResource(getResources(), R.drawable.background);
+        SoundManager.getInstance(getContext()).pauseGameOverSfx();
     }
 
     /**
@@ -92,7 +99,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                 // If no point-giving (non-penalty) objects are present, spawn a new wave.
                 if (squares.stream().noneMatch(rndSqr::isPointSquare)) {
                     spawnWave(squaresPerWave, waveSpeed);
-                    // Increase base speed by x every wave.
+                    // Increase base speed by 2.5 every wave.
                     waveSpeed += 2.5;
                     waveCount++;
 
@@ -101,8 +108,8 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                         squaresPerWave = Math.min(squaresPerWave + 2, 8);
                     }
 
-                    // Every wave, increase worm spawn probability by 0.2% (0.002), capped at 50%.
-                    wormProbability = Math.min(wormProbability + 0.002, 0.5);
+                    // Every wave, increase pest spawn probability by 0.2% (0.002), capped at 50%.
+                    pestProbability = Math.min(pestProbability + 0.002, 0.5);
                 }
 
                 updateSquares();
@@ -115,10 +122,10 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     /**
      * Spawns a wave of objects.
      * For each of the numSquares:
-     * - With probability based on wormProbability, a penalty (worm) is spawned.
+     * - With probability based on pestProbability, a penalty (pest) is spawned.
      * - Otherwise, a non-penalty is spawned:
-     *    • 10% chance for a flower (worth +5) - WAW
-     *    • Otherwise a fruit (worth +1) - wow
+     *    • 10% chance for a flower (worth +5)
+     *    • Otherwise a fruit (worth +1)
      */
     private void spawnWave(int numSquares, int speed) {
         for (int i = 0; i < numSquares; i++) {
@@ -126,12 +133,14 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             x = Math.max(x, 0);
             PointF pos = new PointF(x, 0);
             int size = 150;
-            // Decide if this is a penalty object (worm) using wormProbability.
-            boolean isPenalty = (rnd.nextDouble() < wormProbability);
+            // Use pestProbability for penalty decision.
+            boolean isPenalty = (rnd.nextDouble() < pestProbability);
             Bitmap image;
             if (isPenalty) {
-                image = BitmapFactory.decodeResource(getResources(), penaltyImageResource);
-                // Worms fall 1.5 times faster than the base speed.
+                // Randomize pest image from the pestImageResources array.
+                int pestIndex = rnd.nextInt(pestImageResources.length);
+                image = BitmapFactory.decodeResource(getResources(), pestImageResources[pestIndex]);
+                // Make pests fall 1.5 times faster than the base speed.
                 squares.add(new rndSqr(pos, size, image, 0, (int)(speed * 1.5), true));
             } else {
                 // For non-penalty objects, choose between fruit and flower.
@@ -209,8 +218,15 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                 if (square.contains(touchPos)) {
                     if (square.isPenalty()) {
                         lives--;
+                        // Call pest sound effect (make sure SoundManager has playPestTap())
+                        SoundManager.getInstance(getContext()).playPestTap();
                     } else {
                         score += square.getPoints();
+                        if (square.getPoints() == 5) {
+                            SoundManager.getInstance(getContext()).playFlowerTap();
+                        } else {
+                            SoundManager.getInstance(getContext()).playFruitTap();
+                        }
                     }
                     iterator.remove();
                 }
@@ -238,6 +254,9 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         int yOffset = (newHeight - screenHeight) / 2;
         background = Bitmap.createBitmap(scaledBackground, xOffset, yOffset, screenWidth, screenHeight);
 
+        // Start background music.
+        SoundManager.getInstance(getContext()).startBgm();
+
         startWaves();
         render();
     }
@@ -261,6 +280,9 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         post(new Runnable() {
             @Override
             public void run() {
+                SoundManager.getInstance(getContext()).pauseBgm();
+                SoundManager.getInstance(getContext()).playGameOverSfx();
+
                 if (getContext() instanceof MainActivity) {
                     MainActivity activity = (MainActivity) getContext();
                     FrameLayout gameContainer = activity.findViewById(R.id.gameContainer);
