@@ -67,9 +67,11 @@ public class rndSqr {
         float radius = size / 2f;
         float centerX = pos.x + radius;
         float centerY = pos.y + radius;
+        // Add a buffer of x pixels
+        float buffer = 10;
         float diffX = point.x - centerX;
         float diffY = point.y - centerY;
-        return (diffX * diffX + diffY * diffY) <= (radius * radius);
+        return (diffX * diffX + diffY * diffY) <= ((radius + buffer) * (radius + buffer));
     }
 
     public void setPoints(int points) {
