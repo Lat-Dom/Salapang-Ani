@@ -36,9 +36,9 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     private int lives = 3;
     // Wave parameters
     private int squaresPerWave = 3;
-    private int waveSpeed = 5;
+    private int waveSpeed = 20;  // Constant fast speed throughout the game.
     private int waveCount = 0;
-    // Initial worm probability: 12.5%
+    // Initial worm probability: 15%
     private double wormProbability = 0.15;
 
     private long gameStartTime;
@@ -71,7 +71,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         background = BitmapFactory.decodeResource(getResources(), R.drawable.background);
     }
 
-    /*
+    /**
      * Spawns waves of objects. When there are no non-penalty (point-giving) objects
      * on screen, a new wave is spawned.
      */
@@ -92,7 +92,8 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                 // If no point-giving (non-penalty) objects are present, spawn a new wave.
                 if (squares.stream().noneMatch(rndSqr::isPointSquare)) {
                     spawnWave(squaresPerWave, waveSpeed);
-                    waveSpeed += 2; // Increase falling speed for the next wave.
+                    // Increase base speed by x every wave.
+                    waveSpeed += 2.5;
                     waveCount++;
 
                     // Every 3 waves, increase the number of objects per wave by 2 (capped at 8).
@@ -111,13 +112,13 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         }, 50);
     }
 
-    /*
+    /**
      * Spawns a wave of objects.
      * For each of the numSquares:
      * - With probability based on wormProbability, a penalty (worm) is spawned.
      * - Otherwise, a non-penalty is spawned:
-     *    • 10% chance for a flower (worth +5)
-     *    • Otherwise a fruit (worth +1)
+     *    • 10% chance for a flower (worth +5) - WAW
+     *    • Otherwise a fruit (worth +1) - wow
      */
     private void spawnWave(int numSquares, int speed) {
         for (int i = 0; i < numSquares; i++) {
@@ -125,16 +126,16 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             x = Math.max(x, 0);
             PointF pos = new PointF(x, 0);
             int size = 150;
-            // Use wormProbability for penalty decision.
+            // Decide if this is a penalty object (worm) using wormProbability.
             boolean isPenalty = (rnd.nextDouble() < wormProbability);
             Bitmap image;
             if (isPenalty) {
                 image = BitmapFactory.decodeResource(getResources(), penaltyImageResource);
-                // Make worms fall faster by multiplying speed by 1.5.
+                // Worms fall 1.5 times faster than the base speed.
                 squares.add(new rndSqr(pos, size, image, 0, (int)(speed * 1.5), true));
             } else {
                 // For non-penalty objects, choose between fruit and flower.
-                if (rnd.nextDouble() < 0.1) { // 10% chance to spawn a flower
+                if (rnd.nextDouble() < 0.1) { // 10% chance for a flower
                     int flowerIndex = rnd.nextInt(flowerImageResource.length);
                     image = BitmapFactory.decodeResource(getResources(), flowerImageResource[flowerIndex]);
                     rndSqr obj = new rndSqr(pos, size, image, speed);
@@ -252,7 +253,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         handler.removeCallbacksAndMessages(null);
     }
 
-    /*
+    /**
      * Displays a game-over overlay by inflating the game_over.xml layout. This overlay
      * shows the centered final score and two buttons: "Play Again" and "Main Menu".
      */
